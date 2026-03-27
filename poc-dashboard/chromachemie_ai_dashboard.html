@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chromachemie · AI PO Validation</title>
+<meta name="description" content="AI-powered pharmaceutical purchase order validation platform by Chromachemie.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-base:    #0d1117;
+  --bg-sidebar: #111827;
+  --bg-card:    #1a2233;
+  --bg-hover:   #1f2d42;
+  --bg-input:   #0d1117;
+
+  --border:     #1e2d45;
+  --border-lg:  #253347;
+
+  --accent:     #3b82f6;
+  --accent-dim: rgba(59,130,246,.12);
+  --accent-glow:rgba(59,130,246,.3);
+
+  --green:      #22c55e;
+  --green-dim:  rgba(34,197,94,.12);
+  --green-border:rgba(34,197,94,.35);
+
+  --amber:      #f59e0b;
+  --amber-dim:  rgba(245,158,11,.12);
+  --amber-border:rgba(245,158,11,.35);
+
+  --red:        #ef4444;
+  --red-dim:    rgba(239,68,68,.12);
+  --red-border: rgba(239,68,68,.35);
+
+  --text-primary:  #f1f5f9;
+  --text-secondary:#8b9ab5;
+  --text-muted:    #4b5e78;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-card: 0 4px 24px rgba(0,0,0,.4);
+  --shadow-glow: 0 0 0 3px var(--accent-glow);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-lg); border-radius: 99px; }
+
+/* ══════════════════════════════════════
+   HEADER
+══════════════════════════════════════ */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px;
+  background: rgba(13,17,23,.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px;
+}
+
+.header-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.header-logo .logo-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; box-shadow: 0 0 16px rgba(59,130,246,.4);
+}
+.header-logo h1 {
+  font-size: 15px; font-weight: 700; letter-spacing: -.3px;
+  background: linear-gradient(90deg, #f1f5f9, #94a3b8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.header-logo .subtitle {
+  font-size: 11px; color: var(--text-muted); font-weight: 500;
+  background: none; -webkit-text-fill-color: var(--text-muted);
+}
+
+.header-spacer { flex: 1; }
+
+.ai-status-badge {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 99px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  transition: all .2s;
+}
+.ai-status-badge .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-muted); flex-shrink: 0;
+  transition: background .3s;
+}
+.ai-status-badge.online .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.ai-status-badge.offline .dot { background: var(--red); }
+
+/* ══════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════ */
+.app-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  height: 100vh;
+  padding-top: 56px;
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+.sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-scroll { overflow-y: auto; flex: 1; }
+
+.sidebar-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--text-muted); text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* Server row */
+.server-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.server-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-muted); flex-shrink: 0;
+  transition: all .3s;
+}
+.server-dot.ok  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.server-dot.err { background: var(--red); }
+
+.input-field {
+  flex: 1; padding: 8px 10px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: border-color .2s, box-shadow .2s;
+}
+.input-field:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-glow); }
+
+.btn-sm {
+  padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-secondary); font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Upload zone */
+.upload-zone {
+  border: 1.5px dashed var(--border-lg); border-radius: var(--radius-md);
+  padding: 24px 16px; text-align: center; cursor: pointer;
+  transition: all .25s; background: var(--bg-input);
+  position: relative; overflow: hidden;
+}
+.upload-zone::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,.06), transparent 70%);
+  pointer-events: none;
+}
+.upload-zone:hover, .upload-zone.dragging {
+  border-color: var(--accent); background: var(--accent-dim);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.upload-icon {
+  width: 44px; height: 44px; border-radius: var(--radius-md);
+  background: var(--accent-dim); border: 1px solid rgba(59,130,246,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin: 0 auto 10px;
+}
+.upload-zone p { font-size: 13px; color: var(--text-secondary); }
+.upload-zone p strong { color: var(--accent); font-weight: 600; }
+.upload-zone .upload-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+#fileInput { display: none; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat-pill {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 6px; text-align: center;
+  transition: all .2s;
+}
+.stat-pill:hover { border-color: var(--border-lg); }
+.stat-pill .stat-num { font-size: 20px; font-weight: 800; line-height: 1; }
+.stat-pill .stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+.stat-pill.s-green .stat-num { color: var(--green); }
+.stat-pill.s-amber .stat-num { color: var(--amber); }
+.stat-pill.s-red   .stat-num { color: var(--red); }
+.stat-pill.s-total .stat-num { color: var(--accent); }
+
+/* PO List */
+.po-list-header {
+  padding: 14px 16px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.po-list { flex: 1; overflow-y: auto; }
+
+.po-item {
+  padding: 11px 16px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  position: relative;
+}
+.po-item::after {
+  content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
+  height: 1px; background: var(--border);
+}
+.po-item:hover { background: var(--bg-hover); }
+.po-item.active { background: var(--accent-dim); border-left-color: var(--accent); }
+.po-item.active::after { background: transparent; }
+
+.po-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.po-status-dot.GREEN { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.po-status-dot.AMBER { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.po-status-dot.RED   { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+.po-item-body { flex: 1; min-width: 0; }
+.po-item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.po-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.po-score-badge {
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.po-score-badge.GREEN { color: var(--green); }
+.po-score-badge.AMBER { color: var(--amber); }
+.po-score-badge.RED   { color: var(--red); }
+.po-score-badge.UNKNOWN { color: var(--text-muted); }
+
+.empty-po-state {
+  text-align: center; padding: 40px 20px;
+  color: var(--text-muted); font-size: 13px; line-height: 1.8;
+}
+.empty-po-state .empty-icon { font-size: 36px; margin-bottom: 10px; opacity: .5; }
+
+/* ══════════════════════════════════════
+   MAIN PANEL
+══════════════════════════════════════ */
+.main-panel {
+  overflow-y: auto; background: var(--bg-base); padding: 28px;
+}
+
+/* Welcome */
+.welcome-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: calc(100vh - 56px - 56px);
+  text-align: center;
+}
+.welcome-glow {
+  width: 100px; height: 100px; border-radius: 28px;
+  background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44px; margin: 0 auto 24px;
+  box-shadow: 0 0 60px rgba(59,130,246,.4), 0 0 120px rgba(59,130,246,.15);
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+.welcome-state h2 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 10px; }
+.welcome-state p { font-size: 14px; color: var(--text-secondary); max-width: 400px; line-height: 1.7; }
+
+.feature-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin: 28px auto; max-width: 580px; width: 100%;
+}
+.feature-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 16px 12px; text-align: center;
+  transition: all .25s;
+}
+.feature-card:hover {
+  border-color: var(--accent); background: var(--accent-dim);
+  transform: translateY(-2px); box-shadow: var(--shadow-card);
+}
+.feature-card .fc-icon { font-size: 22px; margin-bottom: 8px; }
+.feature-card .fc-title { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.feature-card .fc-sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+.btn-ghost {
+  padding: 10px 22px; border-radius: var(--radius-md);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Processing */
+.processing-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: calc(100vh - 56px - 56px); text-align: center;
+}
+.spinner-ring {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  animation: spin 1s linear infinite; margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.processing-state h2 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.processing-state p { font-size: 13px; color: var(--text-muted); }
+.step-list { list-style: none; margin-top: 20px; text-align: left; }
+.step-list li {
+  padding: 7px 0; font-size: 13px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 10px;
+}
+.step-list li.done   { color: var(--green); }
+.step-list li.active { color: var(--accent); font-weight: 600; }
+
+/* ── Action bar ── */
+.action-bar {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.btn-approve {
+  padding: 9px 20px; border-radius: var(--radius-sm); border: none;
+  background: var(--green); color: #000; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+  box-shadow: 0 0 16px rgba(34,197,94,.3);
+}
+.btn-approve:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-reject {
+  padding: 9px 20px; border-radius: var(--radius-sm); border: none;
+  background: var(--red-dim); color: var(--red);
+  border: 1px solid var(--red-border);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.btn-reject:hover { background: var(--red); color: white; transform: translateY(-1px); }
+.action-meta {
+  margin-left: auto; font-size: 11px; color: var(--text-muted);
+}
+
+/* ── Result header ── */
+.result-banner {
+  border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 18px;
+  border: 1px solid;
+  position: relative; overflow: hidden;
+}
+.result-banner::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 0% 50%, currentColor, transparent 60%);
+  opacity: .06; pointer-events: none;
+}
+.result-banner.GREEN { border-color: var(--green-border); background: var(--green-dim); color: var(--green); }
+.result-banner.AMBER { border-color: var(--amber-border); background: var(--amber-dim); color: var(--amber); }
+.result-banner.RED   { border-color: var(--red-border);   background: var(--red-dim);   color: var(--red); }
+
+.banner-icon { font-size: 36px; flex-shrink: 0; }
+.banner-body { flex: 1; }
+.banner-body h2 { font-size: 20px; font-weight: 800; color: var(--text-primary); letter-spacing: -.4px; }
+.banner-body p  { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.banner-pills { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.banner-pill {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 99px; border: 1px solid;
+}
+.banner-pill.p-green { background: var(--green-dim); border-color: var(--green-border); color: var(--green); }
+.banner-pill.p-amber { background: var(--amber-dim); border-color: var(--amber-border); color: var(--amber); }
+.banner-pill.p-red   { background: var(--red-dim);   border-color: var(--red-border);   color: var(--red); }
+
+.score-ring {
+  width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 3px solid; font-weight: 800; margin-left: auto;
+}
+.score-ring .sr-num { font-size: 24px; line-height: 1; }
+.score-ring .sr-lbl { font-size: 9px; font-weight: 600; opacity: .7; margin-top: 1px; }
+.GREEN .score-ring { border-color: var(--green); color: var(--green); }
+.AMBER .score-ring { border-color: var(--amber); color: var(--amber); }
+.RED   .score-ring { border-color: var(--red);   color: var(--red); }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.card-header {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.02);
+}
+.card-header .card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.card-header .card-sub { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+.card-body { padding: 18px; }
+
+/* Fields grid */
+.fields-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.field-item .fk { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+.field-item .fv { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.field-item .fv.missing { color: var(--text-muted); font-style: italic; font-weight: 400; }
+
+/* Checks */
+.checks-list { display: flex; flex-direction: column; gap: 8px; }
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid;
+  transition: all .15s;
+}
+.check-item.PASS { background: var(--green-dim); border-color: var(--green-border); }
+.check-item.FAIL { background: var(--red-dim);   border-color: var(--red-border); }
+.check-item.WARN { background: var(--amber-dim); border-color: var(--amber-border); }
+.check-item:hover { filter: brightness(1.05); }
+
+.check-icon { font-size: 15px; flex-shrink: 0; padding-top: 1px; }
+.check-body { flex: 1; }
+.check-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.check-msg  { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.check-vals { display: flex; gap: 14px; margin-top: 5px; flex-wrap: wrap; }
+.check-val-item { font-size: 11px; }
+.check-val-item .cv-lbl { color: var(--text-muted); }
+.check-val-item .cv-val { color: var(--text-primary); font-weight: 500; }
+
+.sev-tag {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 4px; flex-shrink: 0; align-self: flex-start;
+}
+.sev-tag.HIGH   { background: var(--red-dim); color: var(--red); border: 1px solid var(--red-border); }
+.sev-tag.MEDIUM { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border); }
+.sev-tag.LOW    { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(59,130,246,.3); }
+
+.check-id-tag { font-size: 10px; color: var(--text-muted); font-weight: 700; flex-shrink: 0; align-self: flex-start; padding-top: 3px; }
+
+/* Insights */
+.insights-list { display: flex; flex-direction: column; gap: 10px; }
+.insight-item {
+  display: flex; gap: 10px; font-size: 13px; line-height: 1.6;
+  color: var(--text-secondary); padding: 10px 14px;
+  background: var(--bg-input); border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.insight-item .insight-icon { flex-shrink: 0; font-size: 14px; }
+
+/* Flags */
+.flag-item {
+  display: flex; gap: 10px; padding: 10px 14px;
+  font-size: 13px; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.flag-item:last-child { border-bottom: none; }
+
+/* ── Tabs ── */
+.tabs { display: flex; gap: 2px; margin-bottom: 16px; padding: 3px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.tab {
+  flex: 1; padding: 7px; text-align: center;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border-radius: 4px; color: var(--text-muted);
+  transition: all .2s;
+}
+.tab.active { background: var(--accent); color: white; box-shadow: 0 0 12px rgba(59,130,246,.4); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Table ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text-muted); border-bottom: 1px solid var(--border);
+  background: var(--bg-input);
+}
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Status badge */
+.status-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 99px;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+}
+.status-badge.GREEN { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
+.status-badge.RED   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red-border); }
+.status-badge.neutral { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(59,130,246,.3); }
+
+/* Add form */
+.add-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 14px; }
+.add-form input, .add-form select {
+  padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--text-primary);
+  font-family: 'Inter', sans-serif; width: 100%;
+  transition: border-color .2s;
+}
+.add-form input:focus, .add-form select:focus { outline: none; border-color: var(--accent); }
+.add-form input::placeholder { color: var(--text-muted); }
+.add-form select option { background: var(--bg-card); }
+.add-form .span-full { grid-column: 1/-1; }
+
+.btn-add {
+  padding: 9px 20px; border-radius: var(--radius-sm); border: none;
+  background: var(--accent); color: white; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.btn-add:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+
+.btn-del {
+  padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted); font-size: 11px;
+  cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif;
+}
+.btn-del:hover { border-color: var(--red-border); color: var(--red); background: var(--red-dim); }
+
+details summary {
+  cursor: pointer; font-size: 12px; font-weight: 700;
+  color: var(--accent); list-style: none; display: flex; align-items: center; gap: 6px;
+  padding: 10px 0 0;
+}
+details summary::before { content: '+'; font-size: 16px; }
+details[open] summary::before { content: '−'; }
+
+.empty-table { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  padding: 12px 20px; border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+  background: var(--bg-card); color: var(--text-primary);
+  border: 1px solid var(--border); box-shadow: var(--shadow-card);
+  opacity: 0; transform: translateY(12px) scale(.97);
+  transition: all .3s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast.success { background: var(--green-dim); border-color: var(--green-border); color: var(--green); }
+.toast.error   { background: var(--red-dim);   border-color: var(--red-border);   color: var(--red); }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar { max-height: 50vh; }
+  .feature-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Master data page header */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px;
+}
+.page-header h2 { font-size: 20px; font-weight: 800; letter-spacing: -.4px; }
+.page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.mono { font-family: 'Courier New', monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-logo">
+    <div class="logo-mark">⚗</div>
+    <div>
+      <h1>Chromachemie</h1>
+      <div class="subtitle">AI PO Validation Platform</div>
+    </div>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="ai-status-badge" id="aiStatusBadge">
+    <span class="dot"></span>
+    <span id="aiStatus">Connecting…</span>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="app-layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- Server -->
+      <div class="sidebar-section">
+        <div class="section-label">Server Connection</div>
+        <div class="server-row">
+          <div class="server-dot" id="serverDot"></div>
+          <input type="text" id="serverUrl" class="input-field" value="http://localhost:3001" placeholder="http://localhost:3001">
+          <button class="btn-sm" onclick="checkServer()">Check</button>
+        </div>
+      </div>
+
+      <!-- Upload -->
+      <div class="sidebar-section">
+        <div class="section-label">Upload Purchase Order</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📄</div>
+          <p><strong>Click to upload</strong> or drag &amp; drop</p>
+          <p class="upload-hint">PDF purchase orders · Max 20 MB</p>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(this)">
+      </div>
+
+      <!-- Stats -->
+      <div class="sidebar-section">
+        <div class="section-label">Session Overview</div>
+        <div class="stats-grid">
+          <div class="stat-pill s-total"><div class="stat-num" id="statTotal">0</div><div class="stat-lbl">Total</div></div>
+          <div class="stat-pill s-green"><div class="stat-num" id="statGreen">0</div><div class="stat-lbl">Green</div></div>
+          <div class="stat-pill s-amber"><div class="stat-num" id="statAmber">0</div><div class="stat-lbl">Amber</div></div>
+          <div class="stat-pill s-red"  ><div class="stat-num" id="statRed">0</div><div class="stat-lbl">Red</div></div>
+        </div>
+      </div>
+
+      <!-- PO Log header -->
+      <div class="po-list-header">
+        <span class="section-label" style="margin-bottom:0">PO Log</span>
+      </div>
+    </div>
+
+    <!-- PO list (outside scroll so it fills remaining space) -->
+    <div class="po-list" id="poList">
+      <div class="empty-po-state">
+        <div class="empty-icon">📂</div>
+        No POs validated yet.<br>Upload a PDF to get started.
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN PANEL ── -->
+  <main class="main-panel" id="rightPanel">
+    <div class="welcome-state">
+      <div class="welcome-glow">⚗</div>
+      <h2>AI-Powered PO Validation</h2>
+      <p>Upload a pharmaceutical purchase order PDF and the AI will extract all fields, validate compliance, and deliver a detailed audit report instantly.</p>
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="fc-icon">📥</div>
+          <div class="fc-title">Upload PDF</div>
+          <div class="fc-sub">Any pharma PO</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔍</div>
+          <div class="fc-title">AI Extracts</div>
+          <div class="fc-sub">15+ fields</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">✅</div>
+          <div class="fc-title">Validates</div>
+          <div class="fc-sub">15 compliance checks</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">📊</div>
+          <div class="fc-title">Report</div>
+          <div class="fc-sub">GREEN / AMBER / RED</div>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="showMasterData()">⚙️ &nbsp;Manage Master Data</button>
+    </div>
+  </main>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = () => document.getElementById('serverUrl').value.replace(/\/$/, '');
+let currentPO = null;
+let poLog = [];
+
+// ── Server health ──────────────────────────────────────────────
+async function checkServer() {
+  const dot   = document.getElementById('serverDot');
+  const badge = document.getElementById('aiStatusBadge');
+  const label = document.getElementById('aiStatus');
+  try {
+    const r = await fetch(API() + '/health');
+    const d = await r.json();
+    dot.className = 'server-dot ok';
+    badge.classList.add('online'); badge.classList.remove('offline');
+    label.textContent = d.aiEnabled ? `AI ON · ${d.model}` : 'No API Key';
+    loadStats();
+    showToast('Server connected!', 'success');
+  } catch {
+    dot.className = 'server-dot err';
+    badge.classList.add('offline'); badge.classList.remove('online');
+    label.textContent = 'Server offline';
+    showToast('Cannot reach server. Is it running?', 'error');
+  }
+}
+
+// ── Stats ──────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const d = await fetch(API() + '/api/stats').then(r => r.json());
+    document.getElementById('statTotal').textContent = d.total;
+    document.getElementById('statGreen').textContent = d.green;
+    document.getElementById('statAmber').textContent = d.amber;
+    document.getElementById('statRed').textContent   = d.red;
+  } catch {}
+}
+
+// ── Drag & drop ────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('dragging'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragging'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'application/pdf') processFile(f);
+  else showToast('Please drop a PDF file', 'error');
+});
+function handleFileSelect(input) { if (input.files[0]) processFile(input.files[0]); }
+
+// ── Process file ───────────────────────────────────────────────
+async function processFile(file) {
+  showProcessingScreen(file.name);
+  const formData = new FormData();
+  formData.append('poFile', file);
+  try {
+    updateStep(1); await sleep(300); updateStep(2);
+    const response = await fetch(API() + '/api/ocr/upload', { method: 'POST', body: formData });
+    updateStep(3);
+    if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Server error ' + response.status); }
+    const result = await response.json();
+    updateStep(4); await sleep(200);
+    const entry = {
+      id: result.poId, filename: file.name,
+      extractedData: result.extractedData,
+      validationResult: result.validation,
+      processingTimeMs: result.processingTimeMs,
+      processedAt: new Date().toISOString()
+    };
+    poLog.unshift(entry); renderPOList(); selectPO(entry); loadStats();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    showRightPanel(`<div class="welcome-state"><div class="welcome-glow" style="background:linear-gradient(135deg,#7f1d1d,#ef4444)">❌</div><h2>Processing Failed</h2><p>${err.message}</p><p style="font-size:12px;color:var(--text-muted);margin-top:8px">Ensure the server is running and OPENAI_API_KEY is set in .env</p></div>`);
+  }
+}
+
+function showProcessingScreen(filename) {
+  showRightPanel(`
+    <div class="processing-state">
+      <div class="spinner-ring"></div>
+      <h2>Processing Purchase Order</h2>
+      <p style="margin-bottom:4px">${filename}</p>
+      <p>AI is reading and validating your PO…</p>
+      <ul class="step-list" id="stepList">
+        <li id="step1">⏳ &nbsp;Parsing PDF…</li>
+        <li id="step2">🔍 &nbsp;AI extracting fields…</li>
+        <li id="step3">✅ &nbsp;AI validating compliance…</li>
+        <li id="step4">📊 &nbsp;Building report…</li>
+      </ul>
+    </div>
+  `);
+}
+
+function updateStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step' + i);
+    if (!el) continue;
+    el.className = i < n ? 'done' : i === n ? 'active' : '';
+    if (i < n) el.innerHTML = el.innerHTML.replace('⏳','✅').replace('🔍','✅').replace('📊','✅');
+  }
+}
+
+// ── PO List ────────────────────────────────────────────────────
+function renderPOList() {
+  const el = document.getElementById('poList');
+  if (poLog.length === 0) {
+    el.innerHTML = `<div class="empty-po-state"><div class="empty-icon">📂</div>No POs validated yet.<br>Upload a PDF to get started.</div>`;
+    return;
+  }
+  el.innerHTML = poLog.map((po, i) => {
+    const v      = po.validationResult || {};
+    const name   = po.extractedData?.customerName || po.filename || po.id;
+    const num    = po.extractedData?.poNumber || po.id;
+    const score  = v.overallScore ?? '?';
+    const status = v.overallStatus || 'UNKNOWN';
+    return `<div class="po-item ${po === currentPO ? 'active' : ''}" onclick="selectPO(poLog[${i}])">
+      <div class="po-status-dot ${status}"></div>
+      <div class="po-item-body">
+        <div class="po-item-name">${name}</div>
+        <div class="po-item-meta">${num} · ${timeSince(po.processedAt)}</div>
+      </div>
+      <div class="po-score-badge ${status}">${score}%</div>
+    </div>`;
+  }).join('');
+}
+
+function selectPO(po) { currentPO = po; renderPOList(); renderValidationResult(po); }
+
+// ── Validation result ──────────────────────────────────────────
+function renderValidationResult(po) {
+  const v      = po.validationResult || {};
+  const d      = po.extractedData   || {};
+  const status = v.overallStatus || 'UNKNOWN';
+  const score  = v.overallScore ?? 0;
+  const icon   = status === 'GREEN' ? '✅' : status === 'AMBER' ? '⚠️' : '❌';
+  const checks = v.checks || [];
+  const insights = v.aiInsights || [];
+  const passCount = checks.filter(c => c.status === 'PASS').length;
+  const failCount = checks.filter(c => c.status === 'FAIL').length;
+  const warnCount = checks.filter(c => c.status === 'WARN').length;
+
+  const fieldItems = [
+    ['PO Number', d.poNumber], ['PO Date', d.poDate], ['Customer', d.customerName],
+    ['GST Number', d.gstNumber], ['CAS Number', d.casNumber], ['Product', d.productName],
+    ['Pharmacopoeia', d.pharmacopoeia], ['Pack Size', d.packSize], ['Lot Number', d.lotNumber],
+    ['Quantity', d.quantity], ['Unit Price', d.unitPrice ? '₹' + Number(d.unitPrice).toLocaleString('en-IN') : null],
+    ['HSN Code', d.hsnCode], ['Bill To', d.billTo], ['Ship To', d.shipTo],
+    ['Transaction', d.transactionType], ['Currency', d.currency]
+  ].map(([k, val]) => `<div class="field-item">
+    <div class="fk">${k}</div>
+    <div class="fv ${!val ? 'missing' : ''}">${val || 'Not found'}</div>
+  </div>`).join('');
+
+  const checkItems = checks.map(c => {
+    const ci = c.status === 'PASS' ? '✅' : c.status === 'FAIL' ? '❌' : '⚠️';
+    return `<div class="check-item ${c.status}">
+      <span class="check-icon">${ci}</span>
+      <div class="check-body">
+        <div class="check-name">${c.name}</div>
+        <div class="check-msg">${c.message || ''}</div>
+        ${(c.poValue || c.masterValue) ? `<div class="check-vals">
+          ${c.poValue    ? `<div class="check-val-item"><span class="cv-lbl">PO: </span><span class="cv-val">${c.poValue}</span></div>` : ''}
+          ${c.masterValue? `<div class="check-val-item"><span class="cv-lbl">Master: </span><span class="cv-val">${c.masterValue}</span></div>` : ''}
+        </div>` : ''}
+      </div>
+      <span class="sev-tag ${c.severity}">${c.severity}</span>
+      <span class="check-id-tag">${c.id}</span>
+    </div>`;
+  }).join('');
+
+  const html = `
+    <div class="action-bar">
+      <button class="btn-approve" onclick="approvePO('${po.id}')">✅ &nbsp;Approve PO</button>
+      <button class="btn-reject"  onclick="rejectPO('${po.id}')">Reject</button>
+      <button class="btn-ghost"   onclick="showMasterData()">⚙️ &nbsp;Master Data</button>
+      <span class="action-meta">Processed in ${((po.processingTimeMs||0)/1000).toFixed(1)}s · ${new Date(po.processedAt).toLocaleString()}</span>
+    </div>
+
+    <div class="result-banner ${status}">
+      <span class="banner-icon">${icon}</span>
+      <div class="banner-body">
+        <h2>${status} — ${v.recommendedAction || ''}</h2>
+        <p>${v.summary || ''}</p>
+        <div class="banner-pills">
+          <span class="banner-pill p-green">✅ ${passCount} Passed</span>
+          <span class="banner-pill p-amber">⚠️ ${warnCount} Warnings</span>
+          <span class="banner-pill p-red">❌ ${failCount} Failed</span>
+        </div>
+      </div>
+      <div class="score-ring">
+        <span class="sr-num">${score}</span>
+        <span class="sr-lbl">SCORE</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>📋</span>
+        <span class="card-title">Extracted PO Data</span>
+        <span class="card-sub">AI-extracted from PDF</span>
+      </div>
+      <div class="card-body"><div class="fields-grid">${fieldItems}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>🔍</span>
+        <span class="card-title">Validation Checks</span>
+        <span class="card-sub">${passCount} / ${checks.length} passed</span>
+      </div>
+      <div class="card-body"><div class="checks-list">${checkItems || '<div class="empty-table">No check data available</div>'}</div></div>
+    </div>
+
+    ${insights.length > 0 ? `<div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">AI Insights</span></div>
+      <div class="card-body"><div class="insights-list">${insights.map(i => `<div class="insight-item"><span class="insight-icon">💡</span>${i}</div>`).join('')}</div></div>
+    </div>` : ''}
+
+    ${v.flags && v.flags.length > 0 ? `<div class="card">
+      <div class="card-header"><span>🚩</span><span class="card-title">Flags</span></div>
+      <div class="card-body">${v.flags.map(f => `<div class="flag-item"><span>⚠️</span>${f}</div>`).join('')}</div>
+    </div>` : ''}
+  `;
+  showRightPanel(html);
+}
+
+// ── Master data ────────────────────────────────────────────────
+async function showMasterData() {
+  let products = [], customers = [];
+  try {
+    products  = await fetch(API() + '/api/products').then(r => r.json());
+    customers = await fetch(API() + '/api/customers').then(r => r.json());
+  } catch { showToast('Cannot load master data. Is server running?', 'error'); return; }
+
+  const html = `
+    <div class="page-header">
+      <div>
+        <h2>⚙️ Master Data</h2>
+        <p>Manage products and customers used for PO validation</p>
+      </div>
+      <button class="btn-ghost" onclick="showWelcome()">← Back</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>🔬</span>
+        <span class="card-title">Product / CAS Master</span>
+        <span class="card-sub">${products.length} products</span>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <tr><th>CAS Number</th><th>Product Name</th><th>Pharmacopoeia</th><th>Pack Size</th><th>Active Lot</th><th>Price (₹)</th><th></th></tr>
+            ${products.map(p => `<tr>
+              <td class="mono">${p.casNumber}</td>
+              <td style="font-weight:600;color:var(--text-primary)">${p.name}</td>
+              <td><span class="status-badge neutral">${p.pharmacopoeia}</span></td>
+              <td>${p.packSize}</td>
+              <td class="mono">${p.activeLot || '—'}</td>
+              <td>${Number(p.unitPrice||0).toLocaleString('en-IN')}</td>
+              <td><button class="btn-del" onclick="deleteRecord('product','${p.id}')">Remove</button></td>
+            </tr>`).join('')}
+          </table>
+        </div>
+        <details>
+          <summary>Add New Product</summary>
+          <div class="add-form">
+            <input id="np-cas"   placeholder="CAS Number *">
+            <input id="np-name"  placeholder="Product Name *">
+            <input id="np-pharma" placeholder="Pharmacopoeia (USP/EP/BP)">
+            <input id="np-pack"  placeholder="Pack Size">
+            <input id="np-hsn"   placeholder="HSN Code">
+            <input id="np-lot"   placeholder="Active Lot Number">
+            <input id="np-price" type="number" placeholder="Unit Price (INR)">
+            <div class="span-full"><button class="btn-add" onclick="addProduct()">+ Add Product</button></div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span>🏢</span>
+        <span class="card-title">Customer Master</span>
+        <span class="card-sub">${customers.length} customers</span>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <tr><th>Name</th><th>GST Number</th><th>Bill To</th><th>Ship To</th><th>Type</th><th>Status</th><th></th></tr>
+            ${customers.map(c => `<tr>
+              <td style="font-weight:600;color:var(--text-primary)">${c.name}</td>
+              <td class="mono">${c.gstNumber}</td>
+              <td>${c.billTo}</td>
+              <td>${c.shipTo}</td>
+              <td>${c.transactionType}</td>
+              <td><span class="status-badge ${c.status === 'Active' ? 'GREEN' : 'RED'}">${c.status}</span></td>
+              <td><button class="btn-del" onclick="deleteRecord('customer','${c.id}')">Remove</button></td>
+            </tr>`).join('')}
+          </table>
+        </div>
+        <details>
+          <summary>Add New Customer</summary>
+          <div class="add-form">
+            <input id="nc-name" placeholder="Company Name *">
+            <input id="nc-gst"  placeholder="GST Number *">
+            <input id="nc-bill" placeholder="Bill To Address">
+            <input id="nc-ship" placeholder="Ship To Address">
+            <select id="nc-type"><option value="B2B">B2B</option><option value="B2C">B2C</option></select>
+            <div class="span-full"><button class="btn-add" onclick="addCustomer()">+ Add Customer</button></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  `;
+  showRightPanel(html);
+}
+
+async function addProduct() {
+  const data = {
+    casNumber: document.getElementById('np-cas').value,
+    name: document.getElementById('np-name').value,
+    pharmacopoeia: document.getElementById('np-pharma').value,
+    packSize: document.getElementById('np-pack').value,
+    hsnCode: document.getElementById('np-hsn').value,
+    activeLot: document.getElementById('np-lot').value,
+    unitPrice: Number(document.getElementById('np-price').value) || 0
+  };
+  if (!data.casNumber || !data.name) { showToast('CAS and Name are required', 'error'); return; }
+  try {
+    await fetch(API() + '/api/products', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    showToast('Product added!', 'success'); showMasterData();
+  } catch { showToast('Failed to add product', 'error'); }
+}
+
+async function addCustomer() {
+  const data = {
+    name: document.getElementById('nc-name').value,
+    gstNumber: document.getElementById('nc-gst').value,
+    billTo: document.getElementById('nc-bill').value,
+    shipTo: document.getElementById('nc-ship').value,
+    transactionType: document.getElementById('nc-type').value,
+    status: 'Active'
+  };
+  if (!data.name || !data.gstNumber) { showToast('Name and GST are required', 'error'); return; }
+  try {
+    await fetch(API() + '/api/customers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    showToast('Customer added!', 'success'); showMasterData();
+  } catch { showToast('Failed to add customer', 'error'); }
+}
+
+async function deleteRecord(type, id) {
+  if (!confirm('Delete this record?')) return;
+  const endpoint = type === 'product' ? '/api/products/' : '/api/customers/';
+  try {
+    await fetch(API() + endpoint + id, { method: 'DELETE' });
+    showToast('Deleted!', 'success'); showMasterData();
+  } catch { showToast('Delete failed', 'error'); }
+}
+
+// ── Approve / Reject ───────────────────────────────────────────
+async function approvePO(id) {
+  try {
+    await fetch(API() + '/api/po/' + id + '/approve', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    showToast('PO Approved ✅', 'success');
+  } catch { showToast('Action failed. Is server running?', 'error'); }
+}
+
+async function rejectPO(id) {
+  const reason = prompt('Rejection reason (optional):');
+  try {
+    await fetch(API() + '/api/po/' + id + '/reject', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ reason }) });
+    showToast('PO Rejected', 'success');
+  } catch { showToast('Action failed', 'error'); }
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function showRightPanel(html) { document.getElementById('rightPanel').innerHTML = html; }
+
+function showWelcome() {
+  showRightPanel(`<div class="welcome-state">
+    <div class="welcome-glow">⚗</div>
+    <h2>AI-Powered PO Validation</h2>
+    <p>Upload a pharmaceutical purchase order PDF and the AI will extract all fields and validate compliance.</p>
+    <button class="btn-ghost" style="margin-top:20px" onclick="showMasterData()">⚙️ &nbsp;Manage Master Data</button>
+  </div>`);
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function timeSince(iso) {
+  const s = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (s < 60)   return 'just now';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+// ── Init ───────────────────────────────────────────────────────
+checkServer();
+</script>
+</body>
+</html>
